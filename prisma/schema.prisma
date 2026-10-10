@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId        String    @unique
+  email          String    @unique
+  name           String?
+  role           String    @default("STUDENT") // STUDENT, ADMIN, TEACHER
+  profilePicture String?
+  joinDate       DateTime  @default(now())
+  
+  profile        Profile?
+  courseProgress CourseProgress[]
+  quizResults    QuizResult[]
+  gameProgress   GameProgress[]
+  certificates   Certificate[]
+  trees          Tree[]
+  notifications  Notification[]
+  rewards        Reward[]
+}
+
+model Profile {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  bio              String?
+  school           String?
+  xp               Int     @default(0)
+  coins            Int     @default(0)
+  level            Int     @default(1)
+  streak           Int     @default(0)
+  treesPlanted     Int     @default(0)
+  
+  badges           String[] @default([]) // Array of Achievement IDs
+  completedCourses String[] @default([]) // Array of Course IDs
+  completedGames   String[] @default([]) // Array of Game IDs
+  
+  currentCourse    String?
+  dailyMissions    String   @default("[]") // JSON string for active missions
+
+  energy           Int?     @default(100)
+  maxEnergy        Int?     @default(100)
+  lastEnergyUpdate DateTime? @default(now())
+  currentSkin      String?  @default("default")
+
+  inventoryItems   InventoryItem[]
+  battlePass       BattlePassProgress?
+}
+
+model InventoryItem {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  profileId  String   @db.ObjectId
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  itemId     String
+  type       String   // "skin", "powerup", "consumable"
+  quantity   Int      @default(1)
+  acquiredAt DateTime @default(now())
+
+  @@unique([profileId, itemId])
+}
+
+model BattlePassProgress {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  profileId  String   @unique @db.ObjectId
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  seasonId   String
+  tier       Int      @default(1)
+  xp         Int      @default(0)
+  isPremium  Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+}
+
+model Course {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  category    String
+  difficulty  String   @default("Beginner")
+  duration    String
+  thumbnail   String
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courseProgress CourseProgress[]
+  certificates   Certificate[]
+}
+
+model Lesson {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  courseId  String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   // Markdown or JSON
+  videoUrl  String?
+  order     Int
+  quiz      Quiz?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quiz {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  lessonId  String     @unique @db.ObjectId
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  xpReward  Int        @default(50)
+  coinReward Int       @default(20)
+  questions Question[]
+  quizResults QuizResult[]
+}
+
+model Question {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  quizId        String   @db.ObjectId
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questionText  String
+  options       String[]
+  correctAnswer Int      
+  topic         String   
+}
+
+model CourseProgress {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String   @db.ObjectId
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  completedLessons String[] @db.ObjectId 
+  currentLessonId  String?  @db.ObjectId
+  percentComplete  Int      @default(0)
+  lastAccessed     DateTime @default(now())
+  completed        Boolean  @default(false)
+
+  @@unique([userId, courseId])
+}
+
+model QuizResult {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId     String   @db.ObjectId
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score      Int
+  weakTopics String[]
+  createdAt  DateTime @default(now())
+}
+
+model Game {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  thumbnail   String
+  type        String   // e.g., "EcoRunner", "TrashSorting", "OceanCleanup"
+  gameProgress GameProgress[]
+  leaderboard  Leaderboard[]
+}
+
+model GameProgress {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId     String   @db.ObjectId
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  highScore  Int      @default(0)
+  playCount  Int      @default(0)
+  lastPlayed DateTime @default(now())
+
+  @@unique([userId, gameId])
+}
+
+model Achievement {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  icon        String
+  criteria    String   // JSON or string condition
+  xpReward    Int      @default(0)
+  coinReward  Int      @default(0)
+}
+
+model Leaderboard {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  gameId     String?  @db.ObjectId // Optional, for global or game-specific
+  game       Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId     String   @db.ObjectId // Ref to User
+  score      Int
+  category   String   // "XP", "Trees", "Coins", "Games", "HighScore"
+  updatedAt  DateTime @updatedAt
+
+  @@index([category, score(sort: Desc)])
+}
+
+model Certificate {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String   @db.ObjectId
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  pdfUrl     String?
+  issuedAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model DailyMission {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  xpReward    Int
+  coinReward  Int
+  type        String   // "PlayGame", "CompleteLesson", "PlantTree"
+  targetCount Int
+}
+
+model Tree {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String?
+  type       String
+  plantedAt  DateTime @default(now())
+}
+
+model Reward {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  type       String   // "Badge", "Avatar", "Theme"
+  unlockedAt DateTime @default(now())
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}

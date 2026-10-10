@@ -1,0 +1,74 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Environment files and secrets (Never commit secrets)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env*
+.env*.local
+!.env.example
+*.pem
+*.key
+*.cert
+credentials.json
+
+# Next.js build and cache
+/.next/
+/out/
+/build
+/dist
+*.tsbuildinfo
+next-env.d.ts
+out.html
+*.zip
+
+# Prisma and local database files
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+
+# Testing and coverage
+/coverage
+
+# Vercel
+.vercel
+
+# Debug and logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor directories
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
